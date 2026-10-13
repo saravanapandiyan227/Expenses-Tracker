@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- ── Page Header ─────────────────────────────────────────────────────── -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📊 Dashboard</h1>
+    <p class="page-subtitle">{{ stats.month_label }} — Your personal expense overview</p>
+  </div>
+  <a href="{{ url_for('add') }}" class="btn btn-primary btn-lg">➕ Add Expense</a>
+</div>
+
+<!-- ── Budget Warning Banner ──────────────────────────────────────────── -->
+{% if stats.warning %}
+  <div class="alert alert-warning mb-2" role="alert">
+    ⚠️ <strong>Budget Alert!</strong>
+    You have spent ₹{{ "%.2f"|format(stats.total_month) }}
+    ({{ stats.pct }}%) of your ₹{{ "%.2f"|format(stats.budget) }} monthly budget.
+    Only ₹{{ "%.2f"|format(stats.remaining) }} remaining.
+  </div>
+{% endif %}
+{% if stats.budget > 0 and stats.total_month > stats.budget %}
+  <div class="alert alert-danger mb-2" role="alert">
+    ❌ <strong>Over Budget!</strong>
+    You have exceeded your monthly budget by
+    ₹{{ "%.2f"|format(stats.total_month - stats.budget) }}.
+    Consider reviewing your expenses.
+  </div>
+{% endif %}
+
+<!-- ── Stat Cards ─────────────────────────────────────────────────────── -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon icon-navy">💸</div>
+    <span class="stat-label">Total Expenses</span>
+    <span class="stat-value">₹{{ "%.2f"|format(stats.total_all) }}</span>
+    <span class="stat-sub">All time</span>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon icon-blue">📅</div>
+    <span class="stat-label">This Month</span>
+    <span class="stat-value">₹{{ "%.2f"|format(stats.total_month) }}</span>
+    <span class="stat-sub">{{ stats.month_label }}</span>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon icon-amber">☀️</div>
+    <span class="stat-label">Today</span>
+    <span class="stat-value">₹{{ "%.2f"|format(stats.total_today) }}</span>
+    <span class="stat-sub">{{ now.strftime('%d %b %Y') if now is defined else 'Today' }}</span>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon icon-green">🔢</div>
+    <span class="stat-label">Transactions</span>
+    <span class="stat-value">{{ stats.tx_count }}</span>
+    <span class="stat-sub">All time</span>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon icon-navy">🎯</div>
+    <span class="stat-label">Monthly Budget</span>
+    <span class="stat-value">{% if stats.budget > 0 %}₹{{ "%.2f"|format(stats.budget) }}{% else %}<span style="font-size:1rem;color:var(--gray-400)">Not Set</span>{% endif %}</span>
+    <span class="stat-sub"><a href="{{ url_for('budget') }}" style="font-size:0.8rem;">Manage →</a></span>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon {% if stats.budget > 0 and stats.total_month > stats.budget %}icon-red{% elif stats.warning %}icon-amber{% else %}icon-green{% endif %}">
+      {% if stats.budget > 0 and stats.total_month > stats.budget %}🚨{% elif stats.warning %}⚠️{% else %}✅{% endif %}
+    </div>
+    <span class="stat-label">Remaining Budget</span>
+    <span class="stat-value {% if stats.budget > 0 and stats.total_month > stats.budget %}text-red{% elif stats.warning %}text-amber{% else %}text-green{% endif %}">
+      {% if stats.budget > 0 %}₹{{ "%.2f"|format(stats.remaining) }}{% else %}<span style="font-size:1rem;color:var(--gray-400)">—</span>{% endif %}
+    </span>
+    {% if stats.budget > 0 %}
+    <span class="stat-sub">{{ stats.pct }}% used</span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Budget Progress ─────────────────────────────────────────────────── -->
+{% if stats.budget > 0 %}
+<div class="card mb-3">
+  <div class="card-header">
+    <span class="card-title">📈 Budget Usage — {{ stats.month_label }}</span>
+    <span class="text-muted" style="font-size:0.85rem;">{{ stats.pct }}% used</span>
+  </div>
+  <div class="card-body">
+    <div class="progress-wrap">
+      <div class="progress-bar {% if stats.pct >= 100 %}over-budget{% elif stats.pct >= 80 %}near-budget{% endif %}"
+           id="budget-progress-bar"
+           data-pct="{{ stats.pct }}"
+           style="width: {{ [stats.pct, 100]|min }}%">
+      </div>
+    </div>
+    <div class="d-flex justify-between mt-1" style="font-size:0.82rem;color:var(--gray-500);">
+      <span>₹0</span>
+      <span>Spent: ₹{{ "%.2f"|format(stats.total_month) }}</span>
+      <span>Budget: ₹{{ "%.2f"|format(stats.budget) }}</span>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Recent Transactions ─────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">🕐 Recent Transactions</span>
+    <a href="{{ url_for('expenses') }}" class="btn btn-secondary btn-sm">View All</a>
+  </div>
+  <div class="card-body">
+    {% if recent %}
+      <div class="tx-list">
+        {% for exp in recent %}
+          <div class="tx-item">
+            <div class="tx-left">
+              <div class="tx-icon">
+                {% set icons = {'Food':'🍽️','Transportation':'🚗','Shopping':'🛍️','Bills and Utilities':'💡','Healthcare':'🏥','Education':'📚','Entertainment':'🎬','Travel':'✈️','Rent':'🏠','Other':'📌'} %}
+                {{ icons.get(exp.category, '📌') }}
+              </div>
+              <div>
+                <div class="tx-title">{{ exp.title }}</div>
+                <div class="tx-meta">{{ exp.category }} &bull; {{ exp.expense_date }} &bull; {{ exp.payment_method }}</div>
+              </div>
+            </div>
+            <div class="d-flex align-center gap-1">
+              <span class="tx-amount">₹{{ "%.2f"|format(exp.amount) }}</span>
+              <a href="{{ url_for('edit', expense_id=exp.id) }}" class="btn btn-secondary btn-sm">✏️</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">💸</div>
+        <h3>No expenses yet</h3>
+        <p>Start tracking your spending by adding your first expense.</p>
+        <a href="{{ url_for('add') }}" class="btn btn-primary mt-2">➕ Add First Expense</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

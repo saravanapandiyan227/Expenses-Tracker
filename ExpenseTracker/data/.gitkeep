@@ -1,0 +1,4 @@
+# data/.gitkeep
+# This empty file keeps the data/ directory tracked by Git.
+# The actual SQLite database (expenses.db) is excluded via .gitignore.
+# The database file is created automatically when the Flask application starts.

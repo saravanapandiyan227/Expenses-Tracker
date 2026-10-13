@@ -1,0 +1,76 @@
+---
+# ═══════════════════════════════════════════════════════════════════════════════
+# Ansible Playbook: Expense Tracker Deployment
+# ═══════════════════════════════════════════════════════════════════════════════
+# Prerequisites inside the ansible-docker-lab container:
+#   - community.docker collection installed
+#   - Docker socket mounted at /var/run/docker.sock
+#   - Docker image "expense-tracker-ci" already built on the host
+#   - Named volume "expense_tracker_data" created on the host
+#
+# Install collection (if missing):
+#   docker exec ansible-docker-lab ansible-galaxy collection install community.docker
+#
+# Run manually:
+#   docker exec ansible-docker-lab ansible-playbook -i /inventory.ini /expense-deploy.yml
+# ═══════════════════════════════════════════════════════════════════════════════
+
+- name: Deploy Expense Tracker Application
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    image_name: "expense-tracker-ci"
+    container_name: "expense-tracker-ansible"
+    host_port: 5003
+    container_port: 5000
+    volume_name: "expense_tracker_data"
+    volume_mount: "/app/data"
+
+  tasks:
+
+    # ── 1. Ensure the persistent volume exists ─────────────────────────────────
+    - name: Ensure Docker named volume exists
+      community.docker.docker_volume:
+        name: "{{ volume_name }}"
+        state: present
+
+    # ── 2. Deploy (or update) the application container ────────────────────────
+    - name: Deploy expense-tracker-ansible container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ image_name }}"
+        state: "{{ container_state | default('started') }}"
+        restart_policy: unless-stopped
+        pull: false
+        ports:
+          - "{{ host_port }}:{{ container_port }}"
+        volumes:
+          - "{{ volume_name }}:{{ volume_mount }}"
+        env:
+          FLASK_ENV: "production"
+          SECRET_KEY: "ansible-deployed-expense-tracker-2024"
+      register: container_result
+
+    # ── 3. Verify the container is running ─────────────────────────────────────
+    - name: Verify container is running
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+      failed_when: not container_info.container.State.Running
+
+    # ── 4. Print deployment summary ────────────────────────────────────────────
+    - name: Print deployment summary
+      debug:
+        msg:
+          - "=========================================="
+          - "  Expense Tracker Deployment Complete"
+          - "=========================================="
+          - "  Container : {{ container_name }}"
+          - "  Image     : {{ image_name }}"
+          - "  Port      : localhost:{{ host_port }}"
+          - "  Volume    : {{ volume_name }} → {{ volume_mount }}"
+          - "  Status    : {{ container_info.container.State.Status }}"
+          - "  URL       : http://localhost:{{ host_port }}"
+          - "=========================================="

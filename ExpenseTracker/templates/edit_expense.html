@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Edit Expense{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">✏️ Edit Expense</h1>
+    <p class="page-subtitle">Update the details for expense #{{ expense.id }}.</p>
+  </div>
+  <a href="{{ url_for('expenses') }}" class="btn btn-secondary">← Back to History</a>
+</div>
+
+<div class="card" style="max-width:720px;margin:0 auto;">
+  <div class="card-header">
+    <span class="card-title">💳 Update Expense Details</span>
+    <span class="text-muted" style="font-size:0.82rem;">ID #{{ expense.id }} &bull; Created {{ expense.created_at }}</span>
+  </div>
+  <div class="card-body">
+    <form action="{{ url_for('update', expense_id=expense.id) }}" method="POST" novalidate>
+
+      <!-- Title & Amount -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label required" for="title">Expense Title</label>
+          <input type="text" id="title" name="title" class="form-control"
+                 value="{{ expense.title }}" maxlength="200" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="amount">Amount (₹)</label>
+          <input type="number" id="amount" name="amount" class="form-control"
+                 value="{{ expense.amount }}" min="0.01" step="0.01" required />
+        </div>
+      </div>
+
+      <!-- Category & Payment Method -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label required" for="category">Category</label>
+          <select id="category" name="category" class="form-control" required>
+            <option value="">-- Select Category --</option>
+            {% for cat in categories %}
+              <option value="{{ cat }}" {% if cat == expense.category %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="payment_method">Payment Method</label>
+          <select id="payment_method" name="payment_method" class="form-control" required>
+            <option value="">-- Select Method --</option>
+            {% for pm in payment_methods %}
+              <option value="{{ pm }}" {% if pm == expense.payment_method %}selected{% endif %}>{{ pm }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Date -->
+      <div class="form-group">
+        <label class="form-label required" for="expense_date">Date</label>
+        <input type="date" id="expense_date" name="expense_date"
+               class="form-control" value="{{ expense.expense_date }}" required />
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label class="form-label" for="description">Description</label>
+        <textarea id="description" name="description" class="form-control" rows="3">{{ expense.description }}</textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-lg">💾 Update Expense</button>
+        <a href="{{ url_for('expenses') }}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Danger zone: delete -->
+<div class="card mt-2" style="max-width:720px;margin:1rem auto 0;border-color:var(--red-light);">
+  <div class="card-header" style="background:var(--red-light);">
+    <span class="card-title text-red">⚠️ Danger Zone</span>
+  </div>
+  <div class="card-body d-flex justify-between align-center flex-wrap" style="gap:1rem;">
+    <div>
+      <p class="fw-600 mb-0">Delete this expense</p>
+      <p class="text-muted" style="font-size:0.85rem;">This action is permanent and cannot be undone.</p>
+    </div>
+    <form action="{{ url_for('delete', expense_id=expense.id) }}" method="POST"
+          class="delete-form" data-title="{{ expense.title }}">
+      <button type="submit" class="btn btn-danger">🗑️ Delete Expense</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

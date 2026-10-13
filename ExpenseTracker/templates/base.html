@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Expense Tracker{% endblock %} — DevOps Project</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <meta name="description" content="Expense Tracker — College DevOps CI/CD Project" />
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- ── Navigation ────────────────────────────────────────────────────── -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="{{ url_for('index') }}" class="navbar-brand">
+        <span class="brand-icon">💰</span>
+        <span>ExpenseTracker</span>
+      </a>
+
+      <!-- Hamburger toggle (mobile) -->
+      <div class="nav-toggle" id="navToggle" aria-label="Open menu" role="button" tabindex="0">
+        <span></span><span></span><span></span>
+      </div>
+
+      <ul class="navbar-menu" id="navMenu">
+        <li><a href="{{ url_for('index') }}"    class="nav-link">🏠 Dashboard</a></li>
+        <li><a href="{{ url_for('add') }}"      class="nav-link">➕ Add Expense</a></li>
+        <li><a href="{{ url_for('expenses') }}" class="nav-link">📋 History</a></li>
+        <li><a href="{{ url_for('budget') }}"   class="nav-link">🎯 Budget</a></li>
+        <li><a href="{{ url_for('reports') }}"  class="nav-link">📊 Reports</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ── Flash Messages ─────────────────────────────────────────────────── -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="container" style="padding-top:1rem;">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-auto-dismiss" role="alert">
+            {% if category == 'success' %}✅{% elif category == 'danger' %}❌{% elif category == 'warning' %}⚠️{% else %}ℹ️{% endif %}
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- ── Page Content ───────────────────────────────────────────────────── -->
+  <main class="page-content">
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+  <footer>
+    <p>
+      💰 <strong>Expense Tracker</strong> &mdash; College DevOps Project &nbsp;|&nbsp;
+      Flask &bull; SQLite &bull; Docker &bull; Jenkins &bull; Ansible &nbsp;|&nbsp;
+      &copy; {{ now.year if now is defined else 2024 }}
+    </p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    // Mobile nav toggle
+    const toggle = document.getElementById("navToggle");
+    const menu   = document.getElementById("navMenu");
+    if (toggle && menu) {
+      toggle.addEventListener("click", () => menu.classList.toggle("open"));
+      toggle.addEventListener("keypress", e => { if (e.key === "Enter") menu.classList.toggle("open"); });
+    }
+  </script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

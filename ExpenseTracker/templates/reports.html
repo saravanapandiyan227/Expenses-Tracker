@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Expense Reports{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📊 Expense Reports</h1>
+    <p class="page-subtitle">Analyse your spending patterns and trends.</p>
+  </div>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">← Dashboard</a>
+</div>
+
+{% if tx_count == 0 %}
+  <div class="card">
+    <div class="card-body">
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <h3>No data available yet</h3>
+        <p>Add some expenses first to see your spending reports.</p>
+        <a href="{{ url_for('add') }}" class="btn btn-primary mt-2">➕ Add First Expense</a>
+      </div>
+    </div>
+  </div>
+{% else %}
+
+<!-- ── Summary Stat Cards ──────────────────────────────────────────────── -->
+<div class="report-grid">
+  <div class="stat-card">
+    <div class="stat-icon icon-navy">💸</div>
+    <span class="stat-label">Total All Time</span>
+    <span class="stat-value">₹{{ "%.2f"|format(grand_total) }}</span>
+    <span class="stat-sub">{{ tx_count }} transactions</span>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon icon-blue">📐</div>
+    <span class="stat-label">Average Expense</span>
+    <span class="stat-value">₹{{ "%.2f"|format(avg_expense) }}</span>
+    <span class="stat-sub">per transaction</span>
+  </div>
+
+  {% if highest %}
+  <div class="stat-card">
+    <div class="stat-icon icon-red">🔝</div>
+    <span class="stat-label">Highest Expense</span>
+    <span class="stat-value">₹{{ "%.2f"|format(highest.amount) }}</span>
+    <span class="stat-sub">{{ highest.title }} — {{ highest.expense_date }}</span>
+  </div>
+  {% endif %}
+
+  <div class="stat-card">
+    <div class="stat-icon icon-green">🏷️</div>
+    <span class="stat-label">Categories Used</span>
+    <span class="stat-value">{{ cat_bars|length }}</span>
+    <span class="stat-sub">out of 10 categories</span>
+  </div>
+</div>
+
+<!-- ── Spending by Category ────────────────────────────────────────────── -->
+<div class="card mb-3">
+  <div class="card-header">
+    <span class="card-title">🏷️ Spending by Category</span>
+    <span class="text-muted" style="font-size:0.82rem;">All time</span>
+  </div>
+  <div class="card-body">
+    {% for item in cat_bars %}
+      <div class="cat-bar-row">
+        <span class="cat-bar-label">{{ item.row.category }}</span>
+        <div class="cat-bar-track">
+          <div class="cat-bar-fill" style="width:{{ item.pct }}%;"></div>
+        </div>
+        <span class="cat-bar-amount">₹{{ "%.2f"|format(item.row.total) }}</span>
+      </div>
+    {% endfor %}
+
+    <!-- Category breakdown table -->
+    <div class="table-wrapper mt-2">
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Transactions</th>
+            <th>Total Spent</th>
+            <th>Average</th>
+            <th>% of Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in cat_bars %}
+          <tr>
+            <td>
+              {% set slug = item.row.category.lower().replace(' and ', '-').replace(' ', '-') %}
+              <span class="badge badge-{{ slug }}">{{ item.row.category }}</span>
+            </td>
+            <td>{{ item.row.cnt }}</td>
+            <td class="fw-600">₹{{ "%.2f"|format(item.row.total) }}</td>
+            <td>₹{{ "%.2f"|format(item.row.avg_amt) }}</td>
+            <td>{{ item.pct }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Monthly Summary ────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">📅 Monthly Summary</span>
+    <span class="text-muted" style="font-size:0.82rem;">Last 12 months</span>
+  </div>
+  <div class="card-body">
+    {% if monthly %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Transactions</th>
+              <th>Total Spent</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in monthly %}
+            <tr>
+              <td class="fw-600">{{ row.month }}</td>
+              <td>{{ row.cnt }}</td>
+              <td class="fw-700 text-navy">₹{{ "%.2f"|format(row.total) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted">No monthly data available.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}

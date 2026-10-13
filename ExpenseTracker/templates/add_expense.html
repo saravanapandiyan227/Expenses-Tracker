@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Add Expense{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">➕ Add New Expense</h1>
+    <p class="page-subtitle">Record a new expense to track your spending.</p>
+  </div>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back to Dashboard</a>
+</div>
+
+<div class="card" style="max-width:720px;margin:0 auto;">
+  <div class="card-header">
+    <span class="card-title">💳 Expense Details</span>
+  </div>
+  <div class="card-body">
+    <form action="{{ url_for('add_expense') }}" method="POST" novalidate>
+
+      <!-- Title & Amount -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label required" for="title">Expense Title</label>
+          <input type="text" id="title" name="title" class="form-control"
+                 placeholder="e.g. Lunch, Bus Pass, Electricity Bill"
+                 maxlength="200" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="amount">Amount (₹)</label>
+          <input type="number" id="amount" name="amount" class="form-control"
+                 placeholder="0.00" min="0.01" step="0.01" required />
+        </div>
+      </div>
+
+      <!-- Category & Payment Method -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label required" for="category">Category</label>
+          <select id="category" name="category" class="form-control" required>
+            <option value="">-- Select Category --</option>
+            {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="payment_method">Payment Method</label>
+          <select id="payment_method" name="payment_method" class="form-control" required>
+            <option value="">-- Select Method --</option>
+            {% for pm in payment_methods %}
+              <option value="{{ pm }}">{{ pm }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Date -->
+      <div class="form-group">
+        <label class="form-label required" for="expense_date">Date</label>
+        <input type="date" id="expense_date" name="expense_date"
+               class="form-control" value="{{ today }}" required />
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label class="form-label" for="description">Description <span style="font-weight:400;color:var(--gray-400)">(optional)</span></label>
+        <textarea id="description" name="description" class="form-control"
+                  placeholder="Add any notes about this expense…" rows="3"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-success btn-lg">💾 Save Expense</button>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tips card -->
+<div class="card mt-2" style="max-width:720px;margin:1rem auto 0;">
+  <div class="card-body" style="padding:1rem 1.4rem;">
+    <p style="font-size:0.85rem;color:var(--gray-500);margin:0;">
+      💡 <strong>Tip:</strong> All fields marked with <span style="color:var(--red)">*</span>
+      are required. Amounts must be positive numbers. Your expense will be saved immediately
+      and will appear on the dashboard and in expense history.
+    </p>
+  </div>
+</div>
+{% endblock %}

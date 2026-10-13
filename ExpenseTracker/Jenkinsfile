@@ -1,0 +1,119 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME      = "expense-tracker-ci"
+        CONTAINER_NAME  = "expense-tracker-ansible"
+        VOLUME_NAME     = "expense_tracker_data"
+        ANSIBLE_CONTAINER = "ansible-docker-lab"
+        PLAYBOOK_PATH   = "/expense-deploy.yml"
+        INVENTORY_PATH  = "/inventory.ini"
+        HOST_PORT       = "5003"
+    }
+
+    stages {
+
+        // ── Stage 1: Checkout ───────────────────────────────────────────
+        stage("Checkout") {
+            steps {
+                echo "=============================================="
+                echo " STAGE 1: Checking out source code from GitHub"
+                echo "=============================================="
+                checkout scm
+                echo "Source code checked out successfully."
+                sh "ls -la"
+            }
+        }
+
+        // ── Stage 2: Build Docker Image ─────────────────────────────────
+        stage("Build") {
+            steps {
+                echo "=============================================="
+                echo " STAGE 2: Building Docker image: ${IMAGE_NAME}"
+                echo "=============================================="
+                sh """
+                    docker build -t ${IMAGE_NAME} .
+                    echo "Docker image '${IMAGE_NAME}' built successfully."
+                    docker images ${IMAGE_NAME}
+                """
+            }
+        }
+
+        // ── Stage 3: Run Automated Tests ────────────────────────────────
+        stage("Test") {
+            steps {
+                echo "=============================================="
+                echo " STAGE 3: Running Pytest inside Docker"
+                echo "=============================================="
+                sh """
+                    docker run --rm \\
+                        -e TESTING=true \\
+                        ${IMAGE_NAME} \\
+                        python -m pytest test_app.py -v --tb=short
+                """
+                echo "All tests passed successfully."
+            }
+        }
+
+        // ── Stage 4: Deploy with Ansible ─────────────────────────────────
+        stage("Deploy with Ansible") {
+            steps {
+                echo "=============================================="
+                echo " STAGE 4: Deploying via Ansible"
+                echo "=============================================="
+
+                // Ensure the persistent volume exists on the host
+                sh "docker volume create ${VOLUME_NAME} || true"
+
+                // Copy the updated playbook into the Ansible container
+                sh """
+                    docker cp ansible/expense-deploy.yml \\
+                        ${ANSIBLE_CONTAINER}:${PLAYBOOK_PATH}
+                    echo "Playbook copied to Ansible container."
+                """
+
+                // Execute the Ansible playbook
+                sh """
+                    docker exec ${ANSIBLE_CONTAINER} \\
+                        ansible-playbook -i ${INVENTORY_PATH} ${PLAYBOOK_PATH}
+                    echo "Ansible deployment completed."
+                """
+            }
+        }
+
+        // ── Stage 5: Verify Deployment ───────────────────────────────────
+        stage("Verify Deployment") {
+            steps {
+                echo "=============================================="
+                echo " STAGE 5: Verifying the deployed container"
+                echo "=============================================="
+                sh """
+                    sleep 5
+                    docker ps --filter name=${CONTAINER_NAME} --format "{{.Names}} | {{.Status}} | {{.Ports}}"
+                    docker logs --tail 20 ${CONTAINER_NAME} || true
+                    echo "Container ${CONTAINER_NAME} is running on port ${HOST_PORT}."
+                """
+            }
+        }
+    }
+
+    // ── Post-build Actions ────────────────────────────────────────────────
+    post {
+        success {
+            echo "=============================================="
+            echo " SUCCESS: Expense Tracker CI/CD Pipeline Completed Successfully!"
+            echo " Application URL: http://localhost:${HOST_PORT}"
+            echo "=============================================="
+        }
+        failure {
+            echo "=============================================="
+            echo " FAILURE: Expense Tracker CI/CD Pipeline Failed!"
+            echo " Check the console output above for details."
+            echo "=============================================="
+        }
+        always {
+            echo "Pipeline finished. Cleaning up dangling Docker images..."
+            sh "docker image prune -f || true"
+        }
+    }
+}
